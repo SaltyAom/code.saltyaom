@@ -22,6 +22,7 @@ export default function ShikiEditor() {
 	const [font, setFont] = useLocalStorage<string>('font')
 	const [scale, setScale] = useLocalStorage<number>('scale')
 	const [spacing, setSpacing] = useLocalStorage<number>('spacing')
+	const [blur, setBlur] = useLocalStorage<number>('blur')
 	const [background, setBackground] = useLocalStorage<string>('background')
 
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
@@ -137,12 +138,13 @@ export default function ShikiEditor() {
 									/>
 
 									<div
-										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none blur-md"
+										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none"
 										style={{
 											backgroundImage: `url(${background ?? '/images/target-for-love.webp'})`,
 											backgroundSize: 'cover',
 											backgroundRepeat: 'no-repeat',
-											scale: scale ?? 1.25
+											scale: scale ?? 1.25,
+											filter: `blur(${blur ?? 10}px)`
 										}}
 									/>
 								</div>
@@ -191,7 +193,7 @@ export default function ShikiEditor() {
 					title="Change Background"
 					aria-label="Change Background"
 				>
-					<Image size={21} />
+					<Image size={21} strokeWidth={1.5} />
 				</button>
 				<input
 					ref={fileElementRef}
@@ -237,6 +239,23 @@ export default function ShikiEditor() {
 						className="outline-none max-w-16"
 						onChange={(e) =>
 							setSpacing(e.target.value as unknown as number)
+						}
+					/>
+				</label>
+
+				<label className="flex flex-col">
+					<span className="text-xs text-neutral-400 font-light">
+						Blur
+					</span>
+					<input
+						type="tel"
+						name="blur"
+						pattern="[0-9]+([.][0-9]{1,2})?"
+						placeholder="10"
+						value={blur ?? ''}
+						className="outline-none max-w-16"
+						onChange={(e) =>
+							setBlur(e.target.value as unknown as number)
 						}
 					/>
 				</label>
@@ -297,7 +316,7 @@ export default function ShikiEditor() {
 					title="Save"
 					aria-label="Save"
 				>
-					<ArrowDownToLine size={21} />
+					<ArrowDownToLine size={21} strokeWidth={1.5} />
 				</button>
 			</aside>
 		</>
