@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, type CSSProperties } from 'react'
 
 import domToImage from 'dom-to-image'
-import { Image, ArrowDownToLine, Brush, ChevronDown } from 'lucide-react'
+import { Image, ArrowDownToLine, Brush, Minus, X, Square } from 'lucide-react'
 
 import { codeToHtml } from 'shiki'
 import { useLocalStorage } from 'react-use'
@@ -9,10 +9,12 @@ import { useLocalStorage } from 'react-use'
 import { defaultCode, languages, themes } from './constant'
 import { isLight } from './utils/luma'
 import { compressImage, isSafari } from './utils/compress'
+import clsx from 'clsx'
 
 export default function ShikiEditor() {
 	const [code, setCode] = useLocalStorage('code', defaultCode)
 	const [html, setHtml] = useState('')
+	const [backgroundColor, setBackgroundColor] = useState('')
 
 	const codeRef = useRef<HTMLDivElement>(null)
 	const fileElementRef = useRef<HTMLInputElement>(null)
@@ -23,6 +25,8 @@ export default function ShikiEditor() {
 	const [scale, setScale] = useLocalStorage<number>('scale')
 	const [spacing, setSpacing] = useLocalStorage<number>('spacing')
 	const [blur, setBlur] = useLocalStorage<number>('blur')
+	const [layout, setLayout] = useLocalStorage<number>('layout', 1)
+	const [title, setTitle] = useLocalStorage<string>('title')
 	const [background, setBackground] = useLocalStorage<string>('background')
 
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
@@ -37,23 +41,25 @@ export default function ShikiEditor() {
 
 	useEffect(() => {
 		codeToHtml(code ? code + ' ' : '', {
-			lang: 'tsx',
+			lang: language ?? 'tsx',
 			theme: theme ?? 'catppuccin-latte'
 		}).then((html) => {
 			const value = html.match(/background-color:#([a-zA-Z0-9]{6})/gs)
 			if (!value) return
 
-			const color = value[0].replace('background-color:#', '')
+			const color = value[0].replace('background-color:', '')
+			setBackgroundColor(color)
 			setColorScheme(isLight(color) ? 'light' : 'dark')
 
 			setHtml(
-				html.replace(
-					/background-color:#([a-zA-Z0-9]{6});/gs,
-					'background-color:#$1cc;border:1px solid #$144;'
-				)
+				html
+				// 	.replace(
+				// 	/background-color:#([a-zA-Z0-9]{6});/gs,
+				// 	'background-color:#$1cc;border:1px solid #$144;'
+				// )
 			)
 		})
-	}, [code, theme, setColorScheme])
+	}, [language, code, theme, setColorScheme])
 
 	useEffect(() => {
 		if (theme) return
@@ -102,9 +108,7 @@ export default function ShikiEditor() {
 						className="text-neutral-300 dark:text-neutral-700 animate-pulse"
 					/>
 				) : (
-					<section
-						className="zoom-sm border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden"
-					>
+					<section className="zoom-sm border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
 						<div
 							ref={codeRef}
 							className="relative min-w-xs max-w-7xl"
@@ -123,10 +127,15 @@ export default function ShikiEditor() {
 							/>
 
 							<section
-								className="relative text-lg font-mono rounded-2xl shadow-xl"
+								className={clsx(
+									'relative text-lg font-mono px-4 pb-4 rounded-2xl shadow-xl',
+									layout === 1 ? 'pt-4' : 'pt-1'
+								)}
 								style={
 									Object.assign(
-										{},
+										{
+											backgroundColor
+										},
 										font
 											? {
 													// @ts-ignore
@@ -136,28 +145,73 @@ export default function ShikiEditor() {
 									) as CSSProperties
 								}
 							>
-								<div className="relative overflow-hidden rounded-2xl">
-									<div
-										className="relative z-10 p-0 whitespace-nowrap overflow-hidden pointer-events-none *:min-w-xs *:min-h-15.5 **:font-normal! *:p-4 *:rounded-2xl **:not-italic! **:font-mono!"
-										dangerouslySetInnerHTML={{
-											__html: html
-										}}
-									/>
+								{layout === 2 && (
+									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
+										<input
+											type="text"
+											placeholder="code.saltyaom"
+											value={title ?? ''}
+											onChange={(e) =>
+												setTitle(e.target.value)
+											}
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+										/>
+									</header>
+								)}
 
-									<div
-										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none"
-										style={{
-											backgroundImage: `url(${background ?? '/images/target-for-love.webp'})`,
-											backgroundSize: 'cover',
-											backgroundRepeat: 'no-repeat',
-											scale: scale ?? 1.25,
-											filter: `blur(${blur ?? 10}px)`
-										}}
-									/>
-								</div>
+								{layout === 3 && (
+									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
+										<div
+											className="absolute left-3 size-3.5 rounded-full"
+											style={{
+												backgroundColor: '#FF605C'
+											}}
+										/>
+										<div
+											className="absolute left-8.5 size-3.5 rounded-full"
+											style={{
+												backgroundColor: '#FFBD44'
+											}}
+										/>
+										<div
+											className="absolute left-14 size-3.5 rounded-full"
+											style={{
+												backgroundColor: '#00CA4E'
+											}}
+										/>
+
+										<input
+											type="text"
+											placeholder="code.saltyaom"
+											value={title ?? ''}
+											onChange={(e) =>
+												setTitle(e.target.value)
+											}
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+										/>
+									</header>
+								)}
+
+								{layout === 4 && (
+									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
+										<X className="absolute right-3.5" size={16} strokeWidth={1.5} />
+										<Square className="absolute right-12" size={12} strokeWidth={1.75} />
+										<Minus className="absolute right-20" size={16} strokeWidth={1.5} />
+
+										<input
+											type="text"
+											placeholder="code.saltyaom"
+											value={title ?? ''}
+											onChange={(e) =>
+												setTitle(e.target.value)
+											}
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+										/>
+									</header>
+								)}
 
 								<textarea
-									className="absolute z-10 inset-0 w-full h-full p-4 caret-blue-400 text-transparent bg-transparent resize-none border-0 outline-0 whitespace-nowrap overflow-hidden"
+									className="absolute z-20 w-full h-full caret-blue-400 text-transparent bg-transparent resize-none border-0 outline-0 whitespace-nowrap overflow-hidden"
 									value={code}
 									onChange={(e) => setCode(e.target.value)}
 									spellCheck={false}
@@ -187,6 +241,27 @@ export default function ShikiEditor() {
 									}}
 									data-gramm="false"
 								/>
+
+								<div className="overflow-hidden">
+									<div
+										className="relative z-10 p-0 whitespace-nowrap overflow-hidden pointer-events-none *:min-w-xs *:min-h-15.5 **:font-normal! *:bg-transparent! *:rounded-2xl **:not-italic! **:font-mono!"
+										dangerouslySetInnerHTML={{
+											__html: html
+										}}
+									/>
+
+									<div
+										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none"
+										style={{
+											backgroundImage: `url(${background ?? '/images/target-for-love.webp'})`,
+											backgroundSize: 'cover',
+											backgroundRepeat: 'no-repeat',
+											scale: scale ?? 1.25,
+											filter: `blur(${blur ?? 10}px)`,
+											opacity: 0.2
+										}}
+									/>
+								</div>
 							</section>
 						</div>
 					</section>
@@ -216,7 +291,7 @@ export default function ShikiEditor() {
 					}}
 				/>
 
-				<label className="flex flex-col">
+				<label className="flex flex-col w-12">
 					<span className="text-xs text-neutral-400 font-light">
 						Scale
 					</span>
@@ -233,7 +308,7 @@ export default function ShikiEditor() {
 					/>
 				</label>
 
-				<label className="flex flex-col">
+				<label className="flex flex-col w-14">
 					<span className="text-xs text-neutral-400 font-light">
 						Spacing
 					</span>
@@ -250,7 +325,7 @@ export default function ShikiEditor() {
 					/>
 				</label>
 
-				<label className="flex flex-col">
+				<label className="flex flex-col w-10">
 					<span className="text-xs text-neutral-400 font-light">
 						Blur
 					</span>
@@ -265,6 +340,30 @@ export default function ShikiEditor() {
 							setBlur(e.target.value as unknown as number)
 						}
 					/>
+				</label>
+
+				<label className="flex flex-col -translate-y-0.5 mr-2">
+					<span className="text-xs text-neutral-400 font-light">
+						Layout
+					</span>
+					<div className="flex items-center mt-0.5 gap-0.5">
+						{new Array(4).fill(0).map((_, index) => (
+							<button
+								key={index}
+								className={clsx(
+									'flex justify-center items-center size-5.5 min-w-5.5 interact:scale-110 rounded-lg transition-all cursor-pointer',
+									layout === index + 1
+										? 'bg-sky-400/10 text-sky-400 scale-100!'
+										: 'text-neutral-400 dark:text-neutral-500'
+								)}
+								onClick={() => setLayout(index + 1)}
+								title={`Layout ${index + 1}`}
+								aria-label={`Layout ${index + 1}`}
+							>
+								{index + 1}
+							</button>
+						))}
+					</div>
 				</label>
 
 				<label className="flex flex-col">
