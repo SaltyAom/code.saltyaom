@@ -1,4 +1,4 @@
-function isSafari() {
+export function isSafari() {
 	const userAgent = navigator.userAgent
 	// Check for "Safari" and exclude "Chrome" and "Edge" to avoid false positives
 	// as Chrome and Edge's user agents also contain "Safari".

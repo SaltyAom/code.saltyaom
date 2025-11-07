@@ -8,7 +8,7 @@ import { useLocalStorage } from 'react-use'
 
 import { defaultCode, languages, themes } from './constant'
 import { isLight } from './utils/luma'
-import { compressImage } from './utils/compress'
+import { compressImage, isSafari } from './utils/compress'
 
 export default function ShikiEditor() {
 	const [code, setCode] = useLocalStorage('code', defaultCode)
@@ -28,6 +28,11 @@ export default function ShikiEditor() {
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
 		'color-scheme',
 		'dark'
+	)
+
+	const [showNotice, setShowNotice] = useLocalStorage<boolean>(
+		'show-notice',
+		true
 	)
 
 	useEffect(() => {
@@ -299,6 +304,35 @@ export default function ShikiEditor() {
 				<label className="flex flex-col">
 					<span className="text-xs text-neutral-400 font-light">
 						Font
+						{showNotice ===
+						// @ts-ignore
+						false ? null : typeof navigator?.brave !==
+						  'undefined' ? (
+							<span>
+								{' '}
+								(Disable Brave Shield for local font){' '}
+								<button
+									onClick={() => setShowNotice(false)}
+									className="text-neutral-700 dark:text-neutral-300 font-medium cursor-pointer"
+								>
+									Dismiss
+								</button>
+							</span>
+						) : isSafari() ? (
+							<span>
+								{' '}
+								(Safari doesn't support local font){' '}
+								<button>[Dismiss]</button>
+								<button
+									onClick={() => setShowNotice(false)}
+									className="text-neutral-700 dark:text-neutral-300 font-medium cursor-pointer"
+								>
+									Dismiss
+								</button>
+							</span>
+						) : (
+							''
+						)}
 					</span>
 					<input
 						type="text"
