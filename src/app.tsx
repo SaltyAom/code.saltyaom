@@ -94,7 +94,7 @@ export default function ShikiEditor() {
 
 	return (
 		<>
-			<main className="flex justify-center items-center w-full min-h-dvh px-4 pt-8 pb-16">
+			<main className="flex justify-center items-center w-full min-h-dvh pt-8 pb-16">
 				{!html ? (
 					<Brush
 						size={36}
@@ -102,7 +102,9 @@ export default function ShikiEditor() {
 						className="text-neutral-300 dark:text-neutral-700 animate-pulse"
 					/>
 				) : (
-					<section className="border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
+					<section
+						className="zoom-sm border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden"
+					>
 						<div
 							ref={codeRef}
 							className="relative min-w-xs max-w-7xl"
@@ -191,9 +193,9 @@ export default function ShikiEditor() {
 				)}
 			</main>
 
-			<aside className="fixed z-30 left-1/2 bottom-4 flex items-center gap-4 p-4 -translate-x-1/2 text-base text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-2xl shadow-black/5">
+			<aside className="fixed z-30 left-1/2 bottom-4 flex items-center gap-4 max-w-[calc(100%-2rem)] p-4 -translate-x-1/2 text-base text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-2xl shadow-black/5 overflow-y-hidden overflow-x-auto">
 				<button
-					className="flex justify-center items-center size-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
+					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
 					onClick={() => fileElementRef.current?.click()}
 					title="Change Background"
 					aria-label="Change Background"
@@ -344,7 +346,7 @@ export default function ShikiEditor() {
 				</label>
 
 				<button
-					className="flex justify-center items-center size-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
+					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
 					onClick={saveImage}
 					title="Save"
 					aria-label="Save"
