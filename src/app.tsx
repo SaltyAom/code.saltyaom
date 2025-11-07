@@ -154,7 +154,7 @@ export default function ShikiEditor() {
 											onChange={(e) =>
 												setTitle(e.target.value)
 											}
-											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
 										/>
 									</header>
 								)}
@@ -187,16 +187,16 @@ export default function ShikiEditor() {
 											onChange={(e) =>
 												setTitle(e.target.value)
 											}
-											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
 										/>
 									</header>
 								)}
 
 								{layout === 4 && (
 									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
-										<X className="absolute right-3.5" size={16} strokeWidth={1.5} />
-										<Square className="absolute right-12" size={12} strokeWidth={1.75} />
-										<Minus className="absolute right-20" size={16} strokeWidth={1.5} />
+										<X className="absolute right-3.5 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
+										<Square className="absolute right-12 dark:text-neutral-300/80" size={12} strokeWidth={1.75} />
+										<Minus className="absolute right-20 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
 
 										<input
 											type="text"
@@ -205,7 +205,7 @@ export default function ShikiEditor() {
 											onChange={(e) =>
 												setTitle(e.target.value)
 											}
-											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-600/65 dark:text-neutral-600/65"
+											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
 										/>
 									</header>
 								)}
