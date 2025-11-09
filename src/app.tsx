@@ -10,11 +10,36 @@ import {
 } from 'shiki'
 import { useLocalStorage } from 'react-use'
 import * as Popover from '@radix-ui/react-popover'
+import { z } from 'zod'
 
 import { defaultCode, languages, themes } from './constant'
 import { isLight } from './utils/luma'
 import { compressImage, isSafari } from './utils/compress'
 import clsx from 'clsx'
+
+const languageRegistrationSchema = z.object({
+	name: z.string().min(1),
+	scopeName: z.string().min(1),
+	patterns: z.array(z.unknown()).optional(),
+	repository: z.record(z.string(), z.unknown()).optional()
+})
+
+const numericInputCodec = z.codec(
+	z.string().regex(/^[0-9]+(\.[0-9]{1,2})?$/),
+	z.number().positive(),
+	{
+		decode: (str) => Number(str),
+		encode: (num) => num.toString()
+	}
+)
+
+const httpUrlSchema = z.url().refine(
+	(url) => {
+		const parsed = new URL(url)
+		return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+	},
+	{ message: 'URL must use http:// or https://' }
+)
 
 export default function ShikiEditor() {
 	const [code, setCode] = useLocalStorage('code', defaultCode)
@@ -165,44 +190,48 @@ export default function ShikiEditor() {
 			return
 		}
 
-		let url: URL
-		try {
-			url = new URL(customLanguageUrl)
-			if (!url.protocol.startsWith('http')) {
-				throw new Error('URL must use http:// or https://')
-			}
-		} catch {
+		const urlValidation = httpUrlSchema.safeParse(customLanguageUrl)
+		if (urlValidation.success === false) {
+			const firstIssue = urlValidation.error.issues[0]
 			alert(
-				'Please enter a valid URL (e.g., https://example.com/language.json)'
+				`Invalid URL: ${
+					firstIssue !== undefined && firstIssue.message !== undefined
+						? firstIssue.message
+						: 'Please enter a valid URL (e.g., https://example.com/language.json)'
+				}`
 			)
 			return
 		}
 
 		setIsLoadingCustomLang(true)
 		try {
-			const response = await fetch(customLanguageUrl)
-			if (!response.ok) {
+			const response = await fetch(urlValidation.data)
+			if (response.ok === false) {
 				throw new Error(
 					`Failed to fetch: ${response.status} ${response.statusText}`
 				)
 			}
 
-			const contentType = response.headers.get('content-type')
-			if (!contentType || !contentType.includes('application/json')) {
-				throw new Error('URL must point to a JSON file')
-			}
+			const rawData = await response.json()
+			const langValidation = languageRegistrationSchema.safeParse(rawData)
 
-			const langData = (await response.json()) as LanguageRegistration
-
-			if (!langData.name || !langData.scopeName) {
+			if (langValidation.success === false) {
+				const firstIssue = langValidation.error.issues[0]
 				throw new Error(
-					'Invalid tmLanguage.json format - missing name or scopeName'
+					`Invalid tmLanguage.json format: ${
+						firstIssue !== undefined &&
+						firstIssue.message !== undefined
+							? firstIssue.message
+							: 'missing required fields'
+					}`
 				)
 			}
 
-			await highlighterRef.current.loadLanguage(langData)
-			setLanguage(langData.name)
-			setCustomLanguageName(langData.name)
+			await highlighterRef.current.loadLanguage(
+				langValidation.data as LanguageRegistration
+			)
+			setLanguage(langValidation.data.name)
+			setCustomLanguageName(langValidation.data.name)
 			setCustomLanguageUrl('')
 			setShowCustomLangInput(false)
 		} catch (error) {
@@ -461,9 +490,17 @@ export default function ShikiEditor() {
 						placeholder="1.25"
 						value={scale ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
-							setScale(e.target.value as unknown as number)
-						}
+						onChange={(e) => {
+							const value = e.target.value
+							if (value === '') {
+								setScale(undefined)
+								return
+							}
+							const result = numericInputCodec.safeDecode(value)
+							if (result.success === true) {
+								setScale(result.data)
+							}
+						}}
 					/>
 				</label>
 
@@ -478,9 +515,17 @@ export default function ShikiEditor() {
 						placeholder="48"
 						value={spacing ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
-							setSpacing(e.target.value as unknown as number)
-						}
+						onChange={(e) => {
+							const value = e.target.value
+							if (value === '') {
+								setSpacing(undefined)
+								return
+							}
+							const result = numericInputCodec.safeDecode(value)
+							if (result.success === true) {
+								setSpacing(result.data)
+							}
+						}}
 					/>
 				</label>
 
@@ -495,9 +540,17 @@ export default function ShikiEditor() {
 						placeholder="10"
 						value={blur ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
-							setBlur(e.target.value as unknown as number)
-						}
+						onChange={(e) => {
+							const value = e.target.value
+							if (value === '') {
+								setBlur(undefined)
+								return
+							}
+							const result = numericInputCodec.safeDecode(value)
+							if (result.success === true) {
+								setBlur(result.data)
+							}
+						}}
 					/>
 				</label>
 
@@ -608,19 +661,14 @@ export default function ShikiEditor() {
 												return
 											}
 
-											try {
-												const url = new URL(
+											const urlValidation =
+												httpUrlSchema.safeParse(
 													customLanguageUrl
 												)
-												if (
-													url.protocol.startsWith(
-														'http'
-													)
-												) {
-													loadCustomLanguage()
-												}
-											} catch {
-												// invalid url, do nothing on blur
+											if (
+												urlValidation.success === true
+											) {
+												loadCustomLanguage()
 											}
 										}}
 										disabled={isLoadingCustomLang}
