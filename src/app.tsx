@@ -3,8 +3,13 @@ import { useEffect, useState, useRef, type CSSProperties } from 'react'
 import domToImage from 'dom-to-image'
 import { Image, ArrowDownToLine, Brush, Minus, X, Square } from 'lucide-react'
 
-import { codeToHtml } from 'shiki'
+import {
+	createHighlighter,
+	type Highlighter,
+	type LanguageRegistration
+} from 'shiki'
 import { useLocalStorage } from 'react-use'
+import * as Popover from '@radix-ui/react-popover'
 
 import { defaultCode, languages, themes } from './constant'
 import { isLight } from './utils/luma'
@@ -18,6 +23,7 @@ export default function ShikiEditor() {
 
 	const codeRef = useRef<HTMLDivElement>(null)
 	const fileElementRef = useRef<HTMLInputElement>(null)
+	const highlighterRef = useRef<Highlighter | null>(null)
 
 	const [language, setLanguage] = useLocalStorage<string>('language')
 	const [theme, setTheme] = useLocalStorage<string>('theme')
@@ -39,27 +45,104 @@ export default function ShikiEditor() {
 		true
 	)
 
+	const [customLanguageUrl, setCustomLanguageUrl] = useState('')
+	const [isLoadingCustomLang, setIsLoadingCustomLang] = useState(false)
+	const [showCustomLangInput, setShowCustomLangInput] = useState(false)
+	const [highlighterReady, setHighlighterReady] = useState(false)
+	const [customLanguageName, setCustomLanguageName] = useLocalStorage<
+		string | null
+	>('custom-language-name', null)
+
 	useEffect(() => {
-		codeToHtml(code ? code + ' ' : '', {
-			lang: language ?? 'tsx',
-			theme: theme ?? 'catppuccin-latte'
-		}).then((html) => {
-			const value = html.match(/background-color:#([a-zA-Z0-9]{6})/gs)
-			if (!value) return
+		const initHighlighter = async () => {
+			if (highlighterRef.current) return
 
-			const color = value[0].replace('background-color:', '')
-			setBackgroundColor(color)
-			setColorScheme(isLight(color) ? 'light' : 'dark')
+			const initialLang = language ?? 'tsx'
+			const initialTheme = theme ?? 'catppuccin-latte'
 
-			setHtml(
-				html
-				// 	.replace(
-				// 	/background-color:#([a-zA-Z0-9]{6});/gs,
-				// 	'background-color:#$1cc;border:1px solid #$144;'
-				// )
-			)
-		})
-	}, [language, code, theme, setColorScheme])
+			const highlighter = await createHighlighter({
+				themes: [initialTheme],
+				langs:
+					customLanguageName && initialLang === customLanguageName
+						? ['tsx']
+						: [initialLang]
+			})
+
+			highlighterRef.current = highlighter
+			setHighlighterReady(true)
+		}
+
+		initHighlighter()
+		// only run once on mount, theme/language are intentionally captured from initial state
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+
+	useEffect(() => {
+		if (highlighterReady && highlighterRef.current && customLanguageName) {
+			const loadedLangs = highlighterRef.current.getLoadedLanguages()
+			if (!loadedLangs.includes(customLanguageName)) {
+				setCustomLanguageName(null)
+				if (language === customLanguageName) {
+					setLanguage('tsx')
+				}
+			}
+		}
+	}, [
+		highlighterReady,
+		customLanguageName,
+		language,
+		setCustomLanguageName,
+		setLanguage
+	])
+
+	useEffect(() => {
+		const highlight = async () => {
+			if (!highlighterRef.current || !highlighterReady) return
+
+			const currentLang = language ?? 'tsx'
+			const currentTheme = theme ?? 'catppuccin-latte'
+
+			const loadedLangs = highlighterRef.current.getLoadedLanguages()
+			const loadedThemes = highlighterRef.current.getLoadedThemes()
+
+			if (!loadedLangs.includes(currentLang)) {
+				console.warn(
+					`Language ${currentLang} not loaded, falling back to tsx`
+				)
+				setLanguage('tsx')
+				return
+			}
+
+			try {
+				if (!loadedThemes.includes(currentTheme)) {
+					// shiki's loadTheme accepts string but types only allow specific literals
+					// @ts-ignore
+					await highlighterRef.current.loadTheme(currentTheme)
+				}
+
+				const html = highlighterRef.current.codeToHtml(
+					code ? code + ' ' : '',
+					{
+						lang: currentLang,
+						theme: currentTheme
+					}
+				)
+
+				const value = html.match(/background-color:#([a-zA-Z0-9]{6})/gs)
+				if (!value) return
+
+				const color = value[0].replace('background-color:', '')
+				setBackgroundColor(color)
+				setColorScheme(isLight(color) ? 'light' : 'dark')
+
+				setHtml(html)
+			} catch (error) {
+				console.error('Highlighting error:', error)
+			}
+		}
+
+		highlight()
+	}, [language, code, theme, setColorScheme, highlighterReady, setLanguage])
 
 	useEffect(() => {
 		if (theme) return
@@ -69,13 +152,70 @@ export default function ShikiEditor() {
 		).matches
 
 		setTheme(systemPrefersDark ? 'catppuccin-mocha' : 'catppuccin-latte')
-	}, [])
+	}, [theme, setTheme])
 
 	useEffect(() => {
 		if (colorScheme === 'dark')
 			document.documentElement.classList.add('dark')
 		else document.documentElement.classList.remove('dark')
 	}, [colorScheme])
+
+	const loadCustomLanguage = async () => {
+		if (customLanguageUrl === '' || highlighterRef.current === null) {
+			return
+		}
+
+		let url: URL
+		try {
+			url = new URL(customLanguageUrl)
+			if (!url.protocol.startsWith('http')) {
+				throw new Error('URL must use http:// or https://')
+			}
+		} catch {
+			alert(
+				'Please enter a valid URL (e.g., https://example.com/language.json)'
+			)
+			return
+		}
+
+		setIsLoadingCustomLang(true)
+		try {
+			const response = await fetch(customLanguageUrl)
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch: ${response.status} ${response.statusText}`
+				)
+			}
+
+			const contentType = response.headers.get('content-type')
+			if (!contentType || !contentType.includes('application/json')) {
+				throw new Error('URL must point to a JSON file')
+			}
+
+			const langData = (await response.json()) as LanguageRegistration
+
+			if (!langData.name || !langData.scopeName) {
+				throw new Error(
+					'Invalid tmLanguage.json format - missing name or scopeName'
+				)
+			}
+
+			await highlighterRef.current.loadLanguage(langData)
+			setLanguage(langData.name)
+			setCustomLanguageName(langData.name)
+			setCustomLanguageUrl('')
+			setShowCustomLangInput(false)
+		} catch (error) {
+			console.error('Error loading custom language:', error)
+			alert(
+				`Failed to load custom language: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`
+			)
+		} finally {
+			setIsLoadingCustomLang(false)
+		}
+	}
 
 	function saveImage() {
 		if (!codeRef.current) return
@@ -119,7 +259,10 @@ export default function ShikiEditor() {
 							<div
 								className="absolute inset-1/2 -translate-1/2 w-7xl h-full bg-center bg-no-repeat"
 								style={{
-									backgroundImage: `url(${background ?? '/images/target-for-love.webp'})`,
+									backgroundImage: `url(${
+										background ??
+										'/images/target-for-love.webp'
+									})`,
 									backgroundSize: 'cover',
 									backgroundRepeat: 'no-repeat',
 									scale: scale ?? 1.25
@@ -138,9 +281,10 @@ export default function ShikiEditor() {
 										},
 										font
 											? {
+													// css custom properties are not in CSSProperties type
 													// @ts-ignore
 													'--font-mono': font
-												}
+											  }
 											: {}
 									) as CSSProperties
 								}
@@ -194,9 +338,21 @@ export default function ShikiEditor() {
 
 								{layout === 4 && (
 									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
-										<X className="absolute right-3.5 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
-										<Square className="absolute right-12 dark:text-neutral-300/80" size={12} strokeWidth={1.75} />
-										<Minus className="absolute right-20 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
+										<X
+											className="absolute right-3.5 dark:text-neutral-300/80"
+											size={16}
+											strokeWidth={1.5}
+										/>
+										<Square
+											className="absolute right-12 dark:text-neutral-300/80"
+											size={12}
+											strokeWidth={1.75}
+										/>
+										<Minus
+											className="absolute right-20 dark:text-neutral-300/80"
+											size={16}
+											strokeWidth={1.5}
+										/>
 
 										<input
 											type="text"
@@ -253,7 +409,10 @@ export default function ShikiEditor() {
 									<div
 										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none"
 										style={{
-											backgroundImage: `url(${background ?? '/images/target-for-love.webp'})`,
+											backgroundImage: `url(${
+												background ??
+												'/images/target-for-love.webp'
+											})`,
 											backgroundSize: 'cover',
 											backgroundRepeat: 'no-repeat',
 											scale: scale ?? 1.25,
@@ -370,18 +529,107 @@ export default function ShikiEditor() {
 					<span className="text-xs text-neutral-400 font-light appearance-none">
 						Language
 					</span>
-					<select
-						name="theme"
-						value={language ?? 'tsx'}
-						className="outline-none appearance-none"
-						onChange={(e) => setLanguage(e.target.value)}
-					>
-						{languages.map((language) => (
-							<option key={language} value={language}>
-								{language}
-							</option>
-						))}
-					</select>
+					<div className="flex items-center gap-1">
+						<select
+							name="theme"
+							value={language ?? 'tsx'}
+							className="outline-none appearance-none"
+							onChange={(e) => setLanguage(e.target.value)}
+						>
+							{languages.map((language) => (
+								<option key={language} value={language}>
+									{language}
+								</option>
+							))}
+							{customLanguageName && (
+								<option
+									key={customLanguageName}
+									value={customLanguageName}
+								>
+									{customLanguageName} (custom)
+								</option>
+							)}
+						</select>
+						<Popover.Root
+							open={showCustomLangInput}
+							onOpenChange={setShowCustomLangInput}
+						>
+							<Popover.Trigger asChild>
+								<button
+									className="text-neutral-400 interact:text-sky-400 transition-colors"
+									title="Custom Language"
+									aria-label="Toggle Custom Language Input"
+								>
+									+
+								</button>
+							</Popover.Trigger>
+							<Popover.Portal>
+								<Popover.Content
+									side="top"
+									align="start"
+									sideOffset={8}
+									className="p-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl min-w-72 z-50"
+								>
+									<div className="flex items-center justify-between mb-2">
+										<span className="text-xs text-neutral-400 font-light">
+											Custom Language URL
+											{isLoadingCustomLang &&
+												' (loading...)'}
+										</span>
+										<Popover.Close asChild>
+											<button
+												className="text-neutral-400 interact:text-neutral-700 dark:interact:text-neutral-300 transition-colors"
+												aria-label="Close"
+											>
+												<X
+													size={14}
+													strokeWidth={1.5}
+												/>
+											</button>
+										</Popover.Close>
+									</div>
+									<input
+										type="text"
+										name="customLanguageUrl"
+										placeholder="https://example.com/lang.json"
+										value={customLanguageUrl}
+										className="w-full px-2 py-1 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg outline-none focus:border-sky-400 transition-colors placeholder:text-neutral-400"
+										onChange={(e) =>
+											setCustomLanguageUrl(e.target.value)
+										}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault()
+												loadCustomLanguage()
+											}
+										}}
+										onBlur={() => {
+											if (customLanguageUrl === '') {
+												return
+											}
+
+											try {
+												const url = new URL(
+													customLanguageUrl
+												)
+												if (
+													url.protocol.startsWith(
+														'http'
+													)
+												) {
+													loadCustomLanguage()
+												}
+											} catch {
+												// invalid url, do nothing on blur
+											}
+										}}
+										disabled={isLoadingCustomLang}
+										autoFocus
+									/>
+								</Popover.Content>
+							</Popover.Portal>
+						</Popover.Root>
+					</div>
 				</label>
 
 				<label className="flex flex-col">
@@ -406,6 +654,7 @@ export default function ShikiEditor() {
 					<span className="text-xs text-neutral-400 font-light">
 						Font
 						{showNotice ===
+						// brave browser detection property is not in standard navigator type
 						// @ts-ignore
 						false ? null : typeof navigator?.brave !==
 						  'undefined' ? (
