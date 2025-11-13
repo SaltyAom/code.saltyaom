@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, type CSSProperties } from 'react'
 
 import domToImage from 'dom-to-image'
-import { Image, ArrowDownToLine, Brush, Minus, X, Square } from 'lucide-react'
+import { Image, ArrowDownToLine, Brush, Minus, X, Square,RotateCcw } from 'lucide-react'
 
 import { codeToHtml } from 'shiki'
 import { useLocalStorage } from 'react-use'
@@ -19,15 +19,15 @@ export default function ShikiEditor() {
 	const codeRef = useRef<HTMLDivElement>(null)
 	const fileElementRef = useRef<HTMLInputElement>(null)
 
-	const [language, setLanguage] = useLocalStorage<string>('language')
-	const [theme, setTheme] = useLocalStorage<string>('theme')
-	const [font, setFont] = useLocalStorage<string>('font')
-	const [scale, setScale] = useLocalStorage<number>('scale')
-	const [spacing, setSpacing] = useLocalStorage<number>('spacing')
-	const [blur, setBlur] = useLocalStorage<number>('blur')
+	const [language, setLanguage,delLanguage] = useLocalStorage<string>('language')
+	const [theme, setTheme,delTheme] = useLocalStorage<string>('theme')
+	const [font, setFont,delFont] = useLocalStorage<string>('font')
+	const [scale, setScale,delScale] = useLocalStorage<number>('scale')
+	const [spacing, setSpacing,delSpacing] = useLocalStorage<number>('spacing')
+	const [blur, setBlur,delBlur] = useLocalStorage<number>('blur')
 	const [layout, setLayout] = useLocalStorage<number>('layout', 1)
-	const [title, setTitle] = useLocalStorage<string>('title')
-	const [background, setBackground] = useLocalStorage<string>('background')
+	const [title, setTitle,delTitle] = useLocalStorage<string>('title')
+	const [background, setBackground,delBackground] = useLocalStorage<string>('background')
 
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
 		'color-scheme',
@@ -97,6 +97,19 @@ export default function ShikiEditor() {
 				link.click()
 			})
 	}
+
+    function reset() {
+		setCode(defaultCode)
+		setLayout(3)
+		delBackground()
+		delBlur()
+		delFont()
+		delLanguage()
+		delScale()
+		delTheme()
+		delTitle()
+		delSpacing()
+    }
 
 	return (
 		<>
@@ -267,7 +280,6 @@ export default function ShikiEditor() {
 					</section>
 				)}
 			</main>
-
 			<aside className="fixed z-30 left-1/2 bottom-4 flex items-center gap-4 max-w-[calc(100%-2rem)] p-4 -translate-x-1/2 text-base text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-2xl shadow-black/5 overflow-y-hidden overflow-x-auto">
 				<button
 					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
@@ -296,15 +308,20 @@ export default function ShikiEditor() {
 						Scale
 					</span>
 					<input
-						type="tel"
+						type="number"
 						name="scale"
 						pattern="[0-9]+([.][0-9]{1,2})?"
 						placeholder="1.25"
 						value={scale ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
-							setScale(e.target.value as unknown as number)
-						}
+						onChange={(e) => {
+							let n = parseFloat(e.currentTarget.value)
+							if(isNaN(n)) {
+								delScale()
+								return
+							}
+							setScale(n)
+						}}
 					/>
 				</label>
 
@@ -319,9 +336,14 @@ export default function ShikiEditor() {
 						placeholder="48"
 						value={spacing ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
+						onChange={(e) =>{
+							let n = parseFloat(e.currentTarget.value)
+							if(isNaN(n)) {
+								delSpacing()
+								return
+							}
 							setSpacing(e.target.value as unknown as number)
-						}
+						}}
 					/>
 				</label>
 
@@ -330,15 +352,20 @@ export default function ShikiEditor() {
 						Blur
 					</span>
 					<input
-						type="tel"
+						type="number"
 						name="blur"
 						pattern="[0-9]+([.][0-9]{1,2})?"
 						placeholder="10"
 						value={blur ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>
-							setBlur(e.target.value as unknown as number)
-						}
+						onChange={(e) => {
+							let n = parseFloat(e.currentTarget.value)
+							if(isNaN(n)) {
+								delBlur()
+								return
+							}
+							setBlur(n)
+						}}
 					/>
 				</label>
 
@@ -347,20 +374,16 @@ export default function ShikiEditor() {
 						Layout
 					</span>
 					<div className="flex items-center mt-0.5 gap-0.5">
-						{new Array(4).fill(0).map((_, index) => (
-							<button
-								key={index}
+						{[1,2,3,4].map((key) => (
+							<button key={key}
 								className={clsx(
 									'flex justify-center items-center size-5.5 min-w-5.5 interact:scale-110 rounded-lg transition-all cursor-pointer',
-									layout === index + 1
-										? 'bg-sky-400/10 text-sky-400 scale-100!'
-										: 'text-neutral-400 dark:text-neutral-500'
+                                    key == layout ? 'bg-sky-400/10 text-sky-400 scale-100!'
+                                    : 'text-neutral-400 dark:text-neutral-500'
 								)}
-								onClick={() => setLayout(index + 1)}
-								title={`Layout ${index + 1}`}
-								aria-label={`Layout ${index + 1}`}
+								onClick={() => setLayout(key)}
 							>
-								{index + 1}
+								{key}
 							</button>
 						))}
 					</div>
@@ -440,7 +463,13 @@ export default function ShikiEditor() {
 						placeholder="JetBrains Mono"
 						value={font ?? ''}
 						className="outline-none"
-						onChange={(e) => setFont(e.target.value)}
+						onChange={(e) => {
+							if(e.currentTarget.value == "") {
+								delFont()
+								return
+							}
+							setFont(e.currentTarget.value)
+						}}
 					/>
 				</label>
 
@@ -451,6 +480,14 @@ export default function ShikiEditor() {
 					aria-label="Save"
 				>
 					<ArrowDownToLine size={21} strokeWidth={1.5} />
+				</button>
+				<button
+					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
+					onClick={reset}
+					title="Reset"
+					aria-label="Reset"
+				>
+					<RotateCcw size={21} strokeWidth={1.5} />
 				</button>
 			</aside>
 		</>
