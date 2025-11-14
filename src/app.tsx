@@ -1,7 +1,15 @@
 import { useEffect, useState, useRef, type CSSProperties } from 'react'
 
 import domToImage from 'dom-to-image'
-import { Image, ArrowDownToLine, Brush, Minus, X, Square,RotateCcw } from 'lucide-react'
+import {
+	Image,
+	ArrowDownToLine,
+	Brush,
+	Minus,
+	X,
+	Square,
+	RotateCcw
+} from 'lucide-react'
 
 import { codeToHtml } from 'shiki'
 import { useLocalStorage } from 'react-use'
@@ -19,15 +27,17 @@ export default function ShikiEditor() {
 	const codeRef = useRef<HTMLDivElement>(null)
 	const fileElementRef = useRef<HTMLInputElement>(null)
 
-	const [language, setLanguage,delLanguage] = useLocalStorage<string>('language')
-	const [theme, setTheme,delTheme] = useLocalStorage<string>('theme')
-	const [font, setFont,delFont] = useLocalStorage<string>('font')
-	const [scale, setScale,delScale] = useLocalStorage<number>('scale')
-	const [spacing, setSpacing,delSpacing] = useLocalStorage<number>('spacing')
-	const [blur, setBlur,delBlur] = useLocalStorage<number>('blur')
+	const [language, setLanguage, delLanguage] =
+		useLocalStorage<string>('language')
+	const [theme, setTheme, delTheme] = useLocalStorage<string>('theme')
+	const [font, setFont, delFont] = useLocalStorage<string>('font')
+	const [scale, setScale, delScale] = useLocalStorage<number>('scale')
+	const [spacing, setSpacing, delSpacing] = useLocalStorage<number>('spacing')
+	const [blur, setBlur, delBlur] = useLocalStorage<number>('blur')
 	const [layout, setLayout] = useLocalStorage<number>('layout', 1)
-	const [title, setTitle,delTitle] = useLocalStorage<string>('title')
-	const [background, setBackground,delBackground] = useLocalStorage<string>('background')
+	const [title, setTitle, delTitle] = useLocalStorage<string>('title')
+	const [background, setBackground, delBackground] =
+		useLocalStorage<string>('background')
 
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
 		'color-scheme',
@@ -51,13 +61,7 @@ export default function ShikiEditor() {
 			setBackgroundColor(color)
 			setColorScheme(isLight(color) ? 'light' : 'dark')
 
-			setHtml(
-				html
-				// 	.replace(
-				// 	/background-color:#([a-zA-Z0-9]{6});/gs,
-				// 	'background-color:#$1cc;border:1px solid #$144;'
-				// )
-			)
+			setHtml(html)
 		})
 	}, [language, code, theme, setColorScheme])
 
@@ -98,7 +102,7 @@ export default function ShikiEditor() {
 			})
 	}
 
-    function reset() {
+	function reset() {
 		setCode(defaultCode)
 		setLayout(3)
 		delBackground()
@@ -109,7 +113,7 @@ export default function ShikiEditor() {
 		delTheme()
 		delTitle()
 		delSpacing()
-    }
+	}
 
 	return (
 		<>
@@ -207,9 +211,21 @@ export default function ShikiEditor() {
 
 								{layout === 4 && (
 									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
-										<X className="absolute right-3.5 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
-										<Square className="absolute right-12 dark:text-neutral-300/80" size={12} strokeWidth={1.75} />
-										<Minus className="absolute right-20 dark:text-neutral-300/80" size={16} strokeWidth={1.5} />
+										<X
+											className="absolute right-3.5 dark:text-neutral-300/80"
+											size={16}
+											strokeWidth={1.5}
+										/>
+										<Square
+											className="absolute right-12 dark:text-neutral-300/80"
+											size={12}
+											strokeWidth={1.75}
+										/>
+										<Minus
+											className="absolute right-20 dark:text-neutral-300/80"
+											size={16}
+											strokeWidth={1.5}
+										/>
 
 										<input
 											type="text"
@@ -316,7 +332,7 @@ export default function ShikiEditor() {
 						className="outline-none max-w-16"
 						onChange={(e) => {
 							let n = parseFloat(e.currentTarget.value)
-							if(isNaN(n)) {
+							if (isNaN(n)) {
 								delScale()
 								return
 							}
@@ -336,9 +352,9 @@ export default function ShikiEditor() {
 						placeholder="48"
 						value={spacing ?? ''}
 						className="outline-none max-w-16"
-						onChange={(e) =>{
+						onChange={(e) => {
 							let n = parseFloat(e.currentTarget.value)
-							if(isNaN(n)) {
+							if (isNaN(n)) {
 								delSpacing()
 								return
 							}
@@ -360,7 +376,7 @@ export default function ShikiEditor() {
 						className="outline-none max-w-16"
 						onChange={(e) => {
 							let n = parseFloat(e.currentTarget.value)
-							if(isNaN(n)) {
+							if (isNaN(n)) {
 								delBlur()
 								return
 							}
@@ -374,12 +390,14 @@ export default function ShikiEditor() {
 						Layout
 					</span>
 					<div className="flex items-center mt-0.5 gap-0.5">
-						{[1,2,3,4].map((key) => (
-							<button key={key}
+						{[1, 2, 3, 4].map((key) => (
+							<button
+								key={key}
 								className={clsx(
 									'flex justify-center items-center size-5.5 min-w-5.5 interact:scale-110 rounded-lg transition-all cursor-pointer',
-                                    key == layout ? 'bg-sky-400/10 text-sky-400 scale-100!'
-                                    : 'text-neutral-400 dark:text-neutral-500'
+									key == layout
+										? 'bg-sky-400/10 text-sky-400 scale-100!'
+										: 'text-neutral-400 dark:text-neutral-500'
 								)}
 								onClick={() => setLayout(key)}
 							>
@@ -464,7 +482,7 @@ export default function ShikiEditor() {
 						value={font ?? ''}
 						className="outline-none"
 						onChange={(e) => {
-							if(e.currentTarget.value == "") {
+							if (e.currentTarget.value == '') {
 								delFont()
 								return
 							}
@@ -481,14 +499,14 @@ export default function ShikiEditor() {
 				>
 					<ArrowDownToLine size={21} strokeWidth={1.5} />
 				</button>
-				<button
+				{/*<button
 					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
 					onClick={reset}
 					title="Reset"
 					aria-label="Reset"
 				>
 					<RotateCcw size={21} strokeWidth={1.5} />
-				</button>
+				</button>*/}
 			</aside>
 		</>
 	)
