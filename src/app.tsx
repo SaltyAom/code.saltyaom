@@ -1,15 +1,7 @@
 import { useEffect, useState, useRef, type CSSProperties } from 'react'
 
 import domToImage from 'dom-to-image'
-import {
-	Image,
-	ArrowDownToLine,
-	Brush,
-	Minus,
-	X,
-	Square,
-	RotateCcw
-} from 'lucide-react'
+import { Image, ArrowDownToLine, Brush, Minus, X, Square } from 'lucide-react'
 
 import { codeToHtml } from 'shiki'
 import { useLocalStorage } from 'react-use'
@@ -27,17 +19,16 @@ export default function ShikiEditor() {
 	const codeRef = useRef<HTMLDivElement>(null)
 	const fileElementRef = useRef<HTMLInputElement>(null)
 
-	const [language, setLanguage, delLanguage] =
-		useLocalStorage<string>('language')
-	const [theme, setTheme, delTheme] = useLocalStorage<string>('theme')
+	const [language, setLanguage] = useLocalStorage<string>('language')
+	const [theme, setTheme] = useLocalStorage<string>('theme')
 	const [font, setFont, delFont] = useLocalStorage<string>('font')
 	const [scale, setScale, delScale] = useLocalStorage<number>('scale')
 	const [spacing, setSpacing, delSpacing] = useLocalStorage<number>('spacing')
 	const [blur, setBlur, delBlur] = useLocalStorage<number>('blur')
 	const [layout, setLayout] = useLocalStorage<number>('layout', 1)
-	const [title, setTitle, delTitle] = useLocalStorage<string>('title')
-	const [background, setBackground, delBackground] =
-		useLocalStorage<string>('background')
+	const [opacity, setOpacity] = useLocalStorage<number>('opacity', 0.8)
+	const [title, setTitle] = useLocalStorage<string>('title')
+	const [background, setBackground] = useLocalStorage<string>('background')
 
 	const [colorScheme, setColorScheme] = useLocalStorage<'light' | 'dark'>(
 		'color-scheme',
@@ -102,19 +93,6 @@ export default function ShikiEditor() {
 			})
 	}
 
-	function reset() {
-		setCode(defaultCode)
-		setLayout(3)
-		delBackground()
-		delBlur()
-		delFont()
-		delLanguage()
-		delScale()
-		delTheme()
-		delTitle()
-		delSpacing()
-	}
-
 	return (
 		<>
 			<main className="flex justify-center items-center w-full min-h-dvh pt-8 pb-16">
@@ -128,7 +106,7 @@ export default function ShikiEditor() {
 					<section className="zoom-sm border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
 						<div
 							ref={codeRef}
-							className="relative min-w-xs max-w-7xl"
+							className="relative min-w-52 max-w-7xl"
 							style={{
 								padding: `${spacing || 48}px`
 							}}
@@ -145,13 +123,13 @@ export default function ShikiEditor() {
 
 							<section
 								className={clsx(
-									'relative text-lg font-mono px-4 pb-4 rounded-2xl shadow-xl',
-									layout === 1 ? 'pt-4' : 'pt-1'
+									'relative text-lg font-mono rounded-2xl shadow-xl'
 								)}
 								style={
 									Object.assign(
 										{
-											backgroundColor
+											backgroundColor,
+											'--tw-shadow-color': `rgba(0,0,0,${(opacity ?? 0.7) * 0.1})`
 										},
 										font
 											? {
@@ -162,8 +140,8 @@ export default function ShikiEditor() {
 									) as CSSProperties
 								}
 							>
-								{layout === 2 && (
-									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
+								<header className="absolute top-2 w-full z-10 flex items-center px-2">
+									{layout === 2 && (
 										<input
 											type="text"
 											placeholder="code.saltyaom"
@@ -173,74 +151,110 @@ export default function ShikiEditor() {
 											}
 											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
 										/>
-									</header>
-								)}
+									)}
 
-								{layout === 3 && (
-									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
-										<div
-											className="absolute left-3 size-3.5 rounded-full"
-											style={{
-												backgroundColor: '#FF605C'
-											}}
-										/>
-										<div
-											className="absolute left-8.5 size-3.5 rounded-full"
-											style={{
-												backgroundColor: '#FFBD44'
-											}}
-										/>
-										<div
-											className="absolute left-14 size-3.5 rounded-full"
-											style={{
-												backgroundColor: '#00CA4E'
-											}}
-										/>
+									{layout === 3 && (
+										<>
+											<div
+												className="absolute left-3 size-3.5 rounded-full"
+												style={{
+													backgroundColor: '#FF605C'
+												}}
+											/>
+											<div
+												className="absolute left-8.5 size-3.5 rounded-full"
+												style={{
+													backgroundColor: '#FFBD44'
+												}}
+											/>
+											<div
+												className="absolute left-14 size-3.5 rounded-full"
+												style={{
+													backgroundColor: '#00CA4E'
+												}}
+											/>
 
-										<input
-											type="text"
-											placeholder="code.saltyaom"
-											value={title ?? ''}
-											onChange={(e) =>
-												setTitle(e.target.value)
-											}
-											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
-										/>
-									</header>
-								)}
+											<input
+												type="text"
+												placeholder="code.saltyaom"
+												value={title ?? ''}
+												onChange={(e) =>
+													setTitle(e.target.value)
+												}
+												className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
+											/>
+										</>
+									)}
 
-								{layout === 4 && (
-									<header className="relative flex items-center py-1 -mx-4 mb-1 px-3">
-										<X
-											className="absolute right-3.5 dark:text-neutral-300/80"
-											size={16}
-											strokeWidth={1.5}
-										/>
-										<Square
-											className="absolute right-12 dark:text-neutral-300/80"
-											size={12}
-											strokeWidth={1.75}
-										/>
-										<Minus
-											className="absolute right-20 dark:text-neutral-300/80"
-											size={16}
-											strokeWidth={1.5}
-										/>
+									{layout === 4 && (
+										<>
+											<X
+												className="absolute right-3.5 text-neutral-600 dark:text-neutral-300/80"
+												size={16}
+												strokeWidth={1.5}
+											/>
+											<Square
+												className="absolute right-12 text-neutral-600 dark:text-neutral-300/80"
+												size={12}
+												strokeWidth={1.75}
+											/>
+											<Minus
+												className="absolute right-20 text-neutral-600 dark:text-neutral-300/80"
+												size={16}
+												strokeWidth={1.5}
+											/>
 
-										<input
-											type="text"
-											placeholder="code.saltyaom"
-											value={title ?? ''}
-											onChange={(e) =>
-												setTitle(e.target.value)
-											}
-											className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
-										/>
-									</header>
-								)}
+											<input
+												type="text"
+												placeholder="code.saltyaom"
+												value={title ?? ''}
+												onChange={(e) =>
+													setTitle(e.target.value)
+												}
+												className="w-full text-center text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
+											/>
+										</>
+									)}
+
+									{layout === 5 && (
+										<>
+											<X
+												className="absolute right-3.5 text-neutral-600 dark:text-neutral-300/80"
+												size={16}
+												strokeWidth={1.5}
+											/>
+											<Square
+												className="absolute right-12 text-neutral-600 dark:text-neutral-300/80"
+												size={12}
+												strokeWidth={1.75}
+											/>
+											<Minus
+												className="absolute right-20 text-neutral-600 dark:text-neutral-300/80"
+												size={16}
+												strokeWidth={1.5}
+											/>
+
+											<input
+												type="text"
+												placeholder="code.saltyaom"
+												value={title ?? ''}
+												onChange={(e) =>
+													setTitle(e.target.value)
+												}
+												className="w-full text-left px-2 text-sm bg-transparent outline-none text-neutral-500/65 placeholder:text-neutral-500/65 dark:text-neutral-300/65 dark:placeholder:text-neutral-300/65"
+											/>
+										</>
+									)}
+								</header>
 
 								<textarea
-									className="absolute z-20 w-full h-full caret-blue-400 text-transparent bg-transparent resize-none border-0 outline-0 whitespace-nowrap overflow-hidden"
+									className={clsx(
+										'absolute left-0 px-4 z-20 w-full caret-blue-400 text-transparent bg-transparent resize-none border-0 outline-0 whitespace-nowrap overflow-hidden',
+										layout === 1 ? 'mt-4' : 'mt-9'
+									)}
+									style={{
+										height: `calc(100% - ${layout === 1 ? 0.5 : 2}rem)`
+									}}
 									value={code}
 									onChange={(e) => setCode(e.target.value)}
 									spellCheck={false}
@@ -271,14 +285,16 @@ export default function ShikiEditor() {
 									data-gramm="false"
 								/>
 
-								<div className="overflow-hidden">
+								<div className="relative overflow-hidden rounded-xl">
 									<div
-										className="relative z-10 p-0 whitespace-nowrap overflow-hidden pointer-events-none *:min-w-xs *:min-h-15.5 **:font-normal! *:bg-transparent! *:rounded-2xl **:not-italic! **:font-mono!"
+										className={clsx(
+											'relative z-10 px-4 pb-4 whitespace-nowrap overflow-hidden pointer-events-none *:min-w-52 *:min-h-7 **:font-normal! *:bg-transparent! *:rounded-2xl **:not-italic! **:font-mono!',
+											layout === 1 ? 'pt-4' : 'pt-9'
+										)}
 										dangerouslySetInnerHTML={{
 											__html: html
 										}}
 									/>
-
 									<div
 										className="absolute z-0 inset-1/2  -translate-1/2 w-7xl h-full bg-center bg-no-repeat scale-100 pointer-events-none"
 										style={{
@@ -287,7 +303,7 @@ export default function ShikiEditor() {
 											backgroundRepeat: 'no-repeat',
 											scale: scale ?? 1.25,
 											filter: `blur(${blur ?? 10}px)`,
-											opacity: 0.2
+											opacity: 1 - (opacity ?? 0.8)
 										}}
 									/>
 								</div>
@@ -390,7 +406,7 @@ export default function ShikiEditor() {
 						Layout
 					</span>
 					<div className="flex items-center mt-0.5 gap-0.5">
-						{[1, 2, 3, 4].map((key) => (
+						{[1, 2, 3, 4, 5].map((key) => (
 							<button
 								key={key}
 								className={clsx(
@@ -404,6 +420,29 @@ export default function ShikiEditor() {
 								{key}
 							</button>
 						))}
+					</div>
+				</label>
+
+				<label className="flex flex-col -translate-y-0.5 mr-2">
+					<span className="text-xs text-neutral-400 font-light">
+						Opacity ({opacity})
+					</span>
+					<div className="flex items-center mt-0.5 gap-0.5">
+						<input
+							type="range"
+							min="0"
+							max="1"
+							step="0.025"
+							value={opacity}
+							onChange={(e) => {
+								const n = parseFloat(e.currentTarget.value)
+								if (isNaN(n)) {
+									delSpacing()
+									return
+								}
+								setOpacity(e.target.value as unknown as number)
+							}}
+						/>
 					</div>
 				</label>
 
@@ -499,14 +538,6 @@ export default function ShikiEditor() {
 				>
 					<ArrowDownToLine size={21} strokeWidth={1.5} />
 				</button>
-				{/*<button
-					className="flex justify-center items-center size-9 min-w-9 interact:bg-sky-400/7.5 interact:text-sky-400 interact:scale-110 rounded-xl transition-all cursor-pointer"
-					onClick={reset}
-					title="Reset"
-					aria-label="Reset"
-				>
-					<RotateCcw size={21} strokeWidth={1.5} />
-				</button>*/}
 			</aside>
 		</>
 	)
